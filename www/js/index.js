@@ -1,143 +1,178 @@
-let pizzaEditando = null;
-let listaPizzasCadastradas = [];
-const PIZZARIA_ID = "pizzaria_do_ze";
-
 document.addEventListener('deviceready', onDeviceReady, false);
 
+var indicePizzaEmEdicao = null; 
+var listaPizzasCadastradas = [];
+var PIZZARIA_ID = "pizzaria-do-dedelas";
+
+var applista = document.getElementById('applista');
+var appcadastro = document.getElementById('appcadastro');
+var btnNovo = document.getElementById('btnNovo');
+var btnCancelar = document.getElementById('btnCancelar');
+var btnSalvar = document.getElementById('btnSalvar');
+var btnExcluir = document.getElementById('btnExcluir');
+var btnFoto = document.getElementById('btnFoto');
+var imagem = document.getElementById('imagem');
+
 function onDeviceReady() {
-    //cordova.plugin.http.setDataSerializer('json');
-    //console.log('Dispositivo pronto!');
+    cordova.plugin.http.setDataSerializer('json');
     carregarPizzas();
+}
 
-    const applista = document.getElementById('applista');
-    const appcadastro = document.getElementById('appcadastro');
-    const btnNovo = document.getElementById('btnNovo');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const btnSalvar = document.getElementById('btnSalvar');
-    const btnExcluir = document.getElementById('btnExcluir');
-    const btnFoto = document.getElementById('btnFoto');
-    const imagem = document.getElementById('imagem');
+btnNovo.addEventListener('click', onNovoClick, false);
+btnCancelar.addEventListener('click', onCancelarClick, false);
+btnSalvar.addEventListener('click', onSalvarClick, false);
+btnExcluir.addEventListener('click', onExcluirClick, false);
+btnFoto.addEventListener('click', onFotoClick, false);
 
-    btnNovo.addEventListener('click', () => {
-        document.getElementById('pizza').value = "";
-        document.getElementById('preco').value = "";
-        imagem.style.backgroundImage = "none";
-        pizzaEditando = null;
-        applista.style.display = 'none';
-        appcadastro.style.display = 'flex';
-    });
+function onNovoClick() {
+    document.getElementById('pizza').value = "";
+    document.getElementById('preco').value = "";
+    imagem.style.backgroundImage = "none";
+    indicePizzaEmEdicao = null;
+    applista.style.display = 'none';
+    appcadastro.style.display = 'flex';
+}
 
-    btnCancelar.addEventListener('click', () => {
-        applista.style.display = 'flex';
-        appcadastro.style.display = 'none';
-    });
+function onCancelarClick() {
+    applista.style.display = 'flex';
+    appcadastro.style.display = 'none';
+}
 
-    btnSalvar.addEventListener('click', () => {
-        console.log("Botão Salvar clicado!");
-        const pizzaInput = document.getElementById('pizza');
-        const precoInput = document.getElementById('preco');
-        const pizzaValor = pizzaInput.value.trim();
-        const precoValor = precoInput.value.trim();
-        const imagemValor = imagem.style.backgroundImage;
-
-        if(pizzaValor === "" || precoValor === ""){
-            alert("Por favor, preencha todos os campos!");
-            return;
+function onSalvarClick() {
+    var pizzaInput = document.getElementById('pizza');
+    var precoInput = document.getElementById('preco');
+    var pizzaValor = pizzaInput.value.trim();
+    var precoValor = precoInput.value.trim();
+    
+    var bg = imagem.style.backgroundImage;
+    var regex = /url\(["']?(data:image\/jpeg;base64,.*)["']?\)/;
+    var match = regex.exec(bg);
+    var imagemValor = "";
+    if (match && match[1]) {
+        imagemValor = match[1].substring("data:image/jpeg;base64,".length);
+    }
+    
+    if (pizzaValor === "" || precoValor === "" || imagemValor === "") {
+        alert("Por favor, preencha todos os campos e capture uma foto!");
+        return;
+    }
+    
+    var dados = {
+        pizzaria: PIZZARIA_ID,
+        pizza: pizzaValor,
+        preco: parseFloat(precoValor),
+        imagem: imagemValor
+    };
+    
+    var url, metodo;
+    if (indicePizzaEmEdicao === null) {
+        url = "https://pedidos-pizzaria.glitch.me/admin/pizza/";
+        metodo = 'post';
+    } else {
+        dados.pizzaid = listaPizzasCadastradas[indicePizzaEmEdicao]._id;
+        url = "https://pedidos-pizzaria.glitch.me/admin/pizza/";
+        metodo = 'put';
+    }
+    
+    cordova.plugin.http[metodo](url, dados, { "Content-Type": "application/json" },
+        function(response) {
+            alert("Pizza salva com sucesso!");
+            carregarPizzas();
+            applista.style.display = 'flex';
+            appcadastro.style.display = 'none';
+        },
+        function(error) {
+            console.error("Erro ao salvar pizza:", error);
+            alert("Erro ao salvar pizza. Tente novamente.");
         }
-        
-        if(pizzaEditando === null){
-            listaPizzasCadastradas.push({
-                pizza: pizzaValor,
-                preco: parseFloat(precoValor),
-                imagem: imagemValor
-            });
-        } else {
-            listaPizzasCadastradas[pizzaEditando] = {
-                pizza: pizzaValor,
-                preco: parseFloat(precoValor),
-                imagem: imagemValor
-            };
-            pizzaEditando = null;
-        }
-        
-        localStorage.setItem('pizzas', JSON.stringify(listaPizzasCadastradas));
-        carregarPizzas();
-        applista.style.display = 'flex';
-        appcadastro.style.display = 'none';
-    });
+    );
+}
 
-    btnExcluir.addEventListener('click', () => {
-        console.log("Botão Excluir clicado!");
-        if(pizzaEditando === null){
-            alert("Nenhuma pizza selecionada para excluir!");
-            return;
+function onExcluirClick() {
+    if (indicePizzaEmEdicao === null) {
+        alert("Nenhuma pizza selecionada para excluir!");
+        return;
+    }
+    
+    var nomePizza = listaPizzasCadastradas[indicePizzaEmEdicao].pizza;
+    var url = "https://pedidos-pizzaria.glitch.me/admin/pizza/" + PIZZARIA_ID + "/" + encodeURIComponent(nomePizza);
+    
+    cordova.plugin.http.delete(url, {}, {},
+        function(response) {
+            alert("Pizza excluída com sucesso!");
+            carregarPizzas();
+            applista.style.display = 'flex';
+            appcadastro.style.display = 'none';
+            indicePizzaEmEdicao = null;
+            imagem.style.backgroundImage = "none";
+        },
+        function(error) {
+            console.error("Erro ao excluir pizza:", error);
+            alert("Erro ao excluir pizza.");
         }
-        listaPizzasCadastradas.splice(pizzaEditando, 1);
-        localStorage.setItem('pizzas', JSON.stringify(listaPizzasCadastradas));
-        carregarPizzas();
-        pizzaEditando = null;
-        imagem.style.backgroundImage = "none";
-        applista.style.display = 'flex';
-        appcadastro.style.display = 'none';
-    });
+    );
+}
 
-    btnFoto.addEventListener('click', () => {
-        console.log("Botão Foto clicado!");
-        navigator.camera.getPicture(
-            (imageData) => {
-                console.log("Foto capturada!");
-                imagem.style.backgroundImage = `url('data:image/jpeg;base64,${imageData}')`;
-                if(pizzaEditando !== null){
-                    listaPizzasCadastradas[pizzaEditando].imagem = `data:image/jpeg;base64,${imageData}`;
-                    localStorage.setItem('pizzas', JSON.stringify(listaPizzasCadastradas));
-                }
-            },
-            (error) => {
-                console.log("Erro ao capturar foto:", error);
-                alert("Erro ao tirar foto!");
-            },
-            {
-                quality: 50,
-                destinationType: Camera.DestinationType.DATA_URL,
-                sourceType: Camera.PictureSourceType.CAMERA,
-                encodingType: Camera.EncodingType.JPEG,
-                mediaType: Camera.MediaType.PICTURE,
-                correctOrientation: true
-            }
-        );
+function onFotoClick() {
+    navigator.camera.getPicture(onFotoSuccess, onFotoFail, {
+        quality: 50,
+        destinationType: Camera.DestinationType.DATA_URL,
+        sourceType: Camera.PictureSourceType.CAMERA,
+        encodingType: Camera.EncodingType.JPEG,
+        mediaType: Camera.MediaType.PICTURE,
+        correctOrientation: true
     });
 }
 
-function carregarPizzas(){
-    console.log("Função carregarPizzas() chamada!");
-    const listaPizzasDiv = document.getElementById('listaPizzas');
+function onFotoSuccess(imageData) {
+    imagem.style.backgroundImage = "url('data:image/jpeg;base64," + imageData + "')";
+}
+
+function onFotoFail(message) {
+    alert("Falha ao capturar a foto: " + message);
+}
+
+function carregarPizzas() {
+    var listaPizzasDiv = document.getElementById('listaPizzas');
     listaPizzasDiv.innerHTML = "";
-    listaPizzasCadastradas = JSON.parse(localStorage.getItem('pizzas')) || [];
-    listaPizzasCadastradas.forEach((item, idx) => {
-        const novo = document.createElement('div');
-        novo.classList.add('linha');
-        novo.innerHTML = `${item.pizza} - R$ ${item.preco.toFixed(2)}`;
-        novo.id = idx;
-        novo.onclick = function(){
-            carregarDadosPizza(novo.id);
-        };
-        listaPizzasDiv.appendChild(novo);
-    });
+    
+    var url = "https://pedidos-pizzaria.glitch.me/admin/pizzas/" + PIZZARIA_ID;
+    cordova.plugin.http.get(url, {}, {},
+        function(response) {
+            if (response.data !== "") {
+                listaPizzasCadastradas = JSON.parse(response.data);
+                for (var idx = 0; idx < listaPizzasCadastradas.length; idx++) {
+                    var item = listaPizzasCadastradas[idx];
+                    var novo = document.createElement('div');
+                    novo.classList.add('linha');
+                    novo.innerHTML = `${item.pizza} - R$ ${parseFloat(item.preco).toFixed(2)}`;
+                    novo.id = idx;
+                    novo.addEventListener('click', function() {
+                        selecionarPizza(this.id);
+                    }, false);
+                    listaPizzasDiv.appendChild(novo);
+                }
+            }
+        },
+        function(error) {
+            console.error("Erro ao carregar pizzas:", error);
+            alert("Erro ao carregar pizzas. Verifique sua conexão com a internet.");
+        }
+    );
 }
 
-function carregarDadosPizza(id){
-    console.log("Carregar dados da pizza id:", id);
-    const pizzaData = listaPizzasCadastradas[id];
-    if(pizzaData){
+function selecionarPizza(id) {
+    var pizzaData = listaPizzasCadastradas[id];
+    if (pizzaData) {
         document.getElementById('pizza').value = pizzaData.pizza;
         document.getElementById('preco').value = pizzaData.preco;
-        if(pizzaData.imagem){
-            document.getElementById('imagem').style.backgroundImage = `url('${pizzaData.imagem}')`;
+        if (pizzaData.imagem) {
+            document.getElementById('imagem').style.backgroundImage = "url('data:image/jpeg;base64," + pizzaData.imagem + "')";
         } else {
             document.getElementById('imagem').style.backgroundImage = "none";
         }
-        pizzaEditando = id;
-        document.getElementById('applista').style.display = 'none';
-        document.getElementById('appcadastro').style.display = 'flex';
+        indicePizzaEmEdicao = id;
+        applista.style.display = 'none';
+        appcadastro.style.display = 'flex';
     }
 }

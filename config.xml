@@ -6,6 +6,11 @@
         Apache Cordova Team
     </author>
     <content src="index.html" />
+    <access origin="*" />
+    <access origin="https://pedidos-pizzaria.glitch.me/*" />
+    <allow-navigation href="https://pedidos-pizzaria.glitch.me/*" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
+    <plugin name="cordova-plugin-camera" source="npm" />
+    <preference name="AndroidInsecureFileModeEnabled" value="true" />
 </widget>
