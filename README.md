@@ -50,18 +50,24 @@ pizzaria-admin/
    cd pizzaria-admin
    ```
 
-2. **Adicionar a plataforma (ex: Android):**
+2. **Instalar dependências do Node.js:**
    ```bash
+   npm install
+   ```
+
+3. **Adicionar a plataforma (ex: Android):**
+   ```bash
+   cordova prepare
    cordova platform add android
    ```
 
-3. **Instalar os plugins necessários:**
+4. **Instalar os plugins necessários:**
    ```bash
    cordova plugin add cordova-plugin-advanced-http
    cordova plugin add cordova-plugin-camera
    ```
 
-4. **Executar a aplicação:**
+5. **Executar a aplicação:**
 
    - No emulador Android:
      ```bash
